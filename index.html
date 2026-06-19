@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="color-scheme" content="dark" />
+<title>RemoteWebCode</title>
+<style>
+  :root { --bg:#0b0f0a; --card:#12160f; --border:#243018; --fg:#e8f0df; --muted:#8aa06e; --accent:#84cc16; }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #1a2410 0%, var(--bg) 60%);
+    color:var(--fg); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px; min-height:100%;
+  }
+  .card {
+    width:100%; max-width:440px; background:var(--card); border:1px solid var(--border);
+    border-radius:20px; padding:32px 28px; text-align:center; box-shadow:0 20px 60px -20px #000;
+  }
+  .logo { font-weight:700; font-size:20px; letter-spacing:-.02em; }
+  .logo span { color:var(--accent); }
+  .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+  #msg { margin:22px 0 18px; font-size:15px; }
+  .spinner {
+    width:34px; height:34px; margin:0 auto 8px; border-radius:50%;
+    border:3px solid var(--border); border-top-color:var(--accent); animation:spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  a.btn, button.btn {
+    display:inline-block; margin-top:10px; padding:11px 20px; border-radius:999px; border:0;
+    background:var(--accent); color:#0b0f0a; font-weight:700; font-size:14px; text-decoration:none;
+    cursor:pointer; font-family:inherit;
+  }
+  a.ghost { display:inline-block; margin-top:10px; color:var(--muted); font-size:12px; text-decoration:none; word-break:break-all; }
+  .hidden { display:none !important; }
+  .foot { margin-top:20px; color:var(--muted); font-size:11px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">◆ Remote<span>WebCode</span></div>
+    <div class="sub">Permanent link — always points to your laptop</div>
+    <div id="spinner" class="spinner"></div>
+    <div id="msg">Connecting to your laptop…</div>
+    <a id="open" class="btn hidden" rel="noopener">Open now →</a>
+    <button id="retry" class="btn hidden" type="button">Retry</button>
+    <a id="raw" class="ghost hidden" rel="noopener"></a>
+    <div class="foot">If it doesn’t forward automatically, tap “Open now”.</div>
+  </div>
+<script>
+  // The live tunnel URL rotates; this fixed page always reads the current one from the pointer file
+  // and forwards to it. Bookmark THIS page once — it never changes.
+  var PTR = "https://raw.githubusercontent.com/joelprince2601/rwc-link/main/live-url.json";
+  var $ = function (id) { return document.getElementById(id); };
+  var tries = 0;
+
+  function show(el) { el.classList.remove("hidden"); }
+  function hide(el) { el.classList.add("hidden"); }
+
+  async function go() {
+    tries++;
+    hide($("retry")); show($("spinner"));
+    $("msg").textContent = "Connecting to your laptop…";
+    try {
+      var res = await fetch(PTR + "?cb=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("pointer " + res.status);
+      var data = await res.json();
+      var url = data && data.url;
+      if (!url) throw new Error("no url");
+      var open = $("open"); open.href = url; show(open);
+      var raw = $("raw"); raw.href = url; raw.textContent = url; show(raw);
+      $("msg").textContent = "Opening your app…";
+      // Brief pause so the link is tappable if the auto-redirect is blocked, then forward.
+      setTimeout(function () { location.replace(url); }, 600);
+    } catch (e) {
+      hide($("spinner"));
+      $("msg").textContent =
+        tries < 3 ? "Reconnecting…" : "Couldn’t reach the launcher. Your laptop may be offline.";
+      if (tries < 3) { setTimeout(go, 1500); } else { show($("retry")); }
+    }
+  }
+  $("retry").addEventListener("click", go);
+  go();
+</script>
+</body>
+</html>
